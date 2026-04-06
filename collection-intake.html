@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Premiere Collectibles — Collection Intake</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+<style>
+:root {
+  --bg: #0a0a0e;
+  --surface: #151519;
+  --border: #2a2a30;
+  --gold: #c4a265;
+  --gold-dim: #8a7245;
+  --text: #f0ece4;
+  --text-dim: #888;
+  --danger: #c44a4a;
+  --success: #4ac46a;
+  --radius: 12px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ─── NAV ─── */
+.nav {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.nav button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 10px 18px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.nav button.active {
+  background: var(--gold);
+  color: var(--bg);
+  border-color: var(--gold);
+}
+
+/* ─── PAGES ─── */
+.page { display: none; padding: 16px; max-width: 600px; margin: 0 auto; }
+.page.active { display: block; }
+
+h1 {
+  font-family: Georgia, serif;
+  color: var(--gold);
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+.subtitle { color: var(--text-dim); font-size: 13px; margin-bottom: 20px; }
+
+/* ─── FORMS ─── */
+label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+  margin-top: 16px;
+}
+label:first-of-type { margin-top: 0; }
+
+input, select, textarea {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 12px;
+  border-radius: var(--radius);
+  font-size: 16px;
+  -webkit-appearance: none;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+textarea { resize: vertical; min-height: 80px; }
+select { cursor: pointer; }
+
+/* ─── BUTTONS ─── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 16px;
+}
+.btn-gold { background: var(--gold); color: var(--bg); }
+.btn-gold:active { background: var(--gold-dim); }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-outline:active { background: var(--surface); }
+.btn-danger { background: var(--danger); color: white; }
+.btn-danger:active { opacity: 0.8; }
+.btn-success { background: var(--success); color: var(--bg); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ─── PHOTO GRID ─── */
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.photo-thumb {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.photo-thumb .delete-photo {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  background: rgba(196, 74, 74, 0.9);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.add-photo-btn {
+  aspect-ratio: 1;
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--gold);
+  font-size: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s;
+}
+.add-photo-btn:active { border-color: var(--gold); }
+
+/* ─── ITEM CARDS (Dashboard) ─── */
+.stats-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  text-align: center;
+}
+.stat .num { font-size: 28px; font-weight: 700; color: var(--gold); font-family: Georgia, serif; }
+.stat .label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+
+.item-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.item-card:active { border-color: var(--gold); }
+.item-card .thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  background: var(--border);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.item-card .thumb img { width: 100%; height: 100%; object-fit: cover; }
+.item-card .info { flex: 1; min-width: 0; }
+.item-card .item-id { font-weight: 700; color: var(--gold); font-size: 14px; }
+.item-card .item-desc {
+  font-size: 13px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.item-card .item-cat { font-size: 11px; color: var(--text-dim); text-transform: uppercase; }
+.item-card .photos-count { font-size: 12px; color: var(--text-dim); flex-shrink: 0; }
+
+/* ─── LABELS PAGE ─── */
+.label-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.label-controls input { flex: 1; }
+
+/* ─── PRINT STYLES ─── */
+@media print {
+  body { background: white; }
+  .nav, .no-print { display: none !important; }
+  .page { display: none !important; }
+  #labelsPage { display: block !important; max-width: none; padding: 0; }
+  .label-controls { display: none; }
+
+  .label-sheet {
+    width: 8.5in;
+    margin: 0;
+    padding: 0.5in 0.1875in;
+  }
+  .label-row {
+    display: flex;
+    height: 1in;
+    margin: 0;
+    page-break-inside: avoid;
+  }
+  .label-cell {
+    width: 2.625in;
+    height: 1in;
+    padding: 0.05in 0.1in;
+    display: flex;
+    align-items: center;
+    gap: 0.15in;
+    border: none !important;
+    overflow: hidden;
+  }
+  .label-cell canvas { width: 0.75in !important; height: 0.75in !important; }
+  .label-cell .label-text { font-size: 10pt; color: black; font-weight: bold; }
+  .label-cell .label-url { font-size: 6pt; color: #666; word-break: break-all; }
+}
+
+/* ─── LABEL PREVIEW (screen) ─── */
+.label-sheet { margin-top: 16px; }
+.label-row { display: flex; gap: 4px; margin-bottom: 4px; }
+.label-cell {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  min-width: 0;
+}
+.label-cell canvas { width: 60px !important; height: 60px !important; flex-shrink: 0; }
+.label-text { font-weight: 700; font-size: 16px; color: var(--gold); }
+.label-url { font-size: 9px; color: var(--text-dim); word-break: break-all; }
+
+/* ─── VOICE BTN ─── */
+.voice-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.voice-row textarea { flex: 1; }
+.voice-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.voice-btn.recording { background: var(--danger); border-color: var(--danger); animation: pulse 1s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+/* ─── TOAST ─── */
+.toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--success);
+  color: var(--bg);
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 14px;
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+/* ─── EXPORT PROGRESS ─── */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 4px;
+  transition: width 0.3s;
+  width: 0%;
+}
+
+/* ─── EMPTY STATE ─── */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-dim);
+}
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+
+/* ─── SEARCH ─── */
+.search-bar {
+  margin-bottom: 12px;
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="nav">
+  <button class="active" onclick="showPage('capture')">Capture</button>
+  <button onclick="showPage('dashboard')">Dashboard</button>
+  <button onclick="showPage('labels')">Labels</button>
+  <button onclick="showPage('export')">Export</button>
+</div>
+
+<!-- ════════════ CAPTURE PAGE ════════════ -->
+<div id="capturePage" class="page active">
+  <h1>Capture Item</h1>
+  <p class="subtitle">Scan a QR label or enter an item number</p>
+
+  <label for="itemId">Item Number</label>
+  <input type="text" id="itemId" placeholder="0001" inputmode="numeric" maxlength="6">
+
+  <label for="category">Category</label>
+  <select id="category">
+    <option value="">Select category...</option>
+    <option value="Signed Book">Signed Book</option>
+    <option value="Rare Book">Rare Book</option>
+    <option value="Autograph">Autograph</option>
+    <option value="Sports Memorabilia">Sports Memorabilia</option>
+    <option value="Card">Card</option>
+    <option value="Art / Print">Art / Print</option>
+    <option value="Photograph">Photograph</option>
+    <option value="Document / Letter">Document / Letter</option>
+    <option value="Coin / Currency">Coin / Currency</option>
+    <option value="Vinyl / Music">Vinyl / Music</option>
+    <option value="Movie / TV Memorabilia">Movie / TV Memorabilia</option>
+    <option value="Other">Other</option>
+  </select>
+
+  <label for="condition">Condition</label>
+  <select id="condition">
+    <option value="">Select condition...</option>
+    <option value="Mint">Mint</option>
+    <option value="Near Mint">Near Mint</option>
+    <option value="Very Good">Very Good</option>
+    <option value="Good">Good</option>
+    <option value="Fair">Fair</option>
+    <option value="Poor">Poor</option>
+  </select>
+
+  <label>Description</label>
+  <div class="voice-row">
+    <textarea id="description" placeholder="Brief description — what is it, who signed it, any notable details..."></textarea>
+    <button class="voice-btn" onclick="toggleVoice()" id="voiceBtn" title="Voice input">🎤</button>
+  </div>
+
+  <label>Notable Features</label>
+  <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+    <label style="margin:0; display:inline-flex; align-items:center; gap:4px; background:var(--surface); border:1px solid var(--border); padding:6px 10px; border-radius:8px; font-size:13px; color:var(--text); cursor:pointer;">
+      <input type="checkbox" class="feature-check" value="Signed"> Signed
+    </label>
+    <label style="margin:0; display:inline-flex; align-items:center; gap:4px; background:var(--surface); border:1px solid var(--border); padding:6px 10px; border-radius:8px; font-size:13px; color:var(--text); cursor:pointer;">
+      <input type="checkbox" class="feature-check" value="COA"> COA
+    </label>
+    <label style="margin:0; display:inline-flex; align-items:center; gap:4px; background:var(--surface); border:1px solid var(--border); padding:6px 10px; border-radius:8px; font-size:13px; color:var(--text); cursor:pointer;">
+      <input type="checkbox" class="feature-check" value="Numbered"> Numbered
+    </label>
+    <label style="margin:0; display:inline-flex; align-items:center; gap:4px; background:var(--surface); border:1px solid var(--border); padding:6px 10px; border-radius:8px; font-size:13px; color:var(--text); cursor:pointer;">
+      <input type="checkbox" class="feature-check" value="First Edition"> 1st Ed
+    </label>
+    <label style="margin:0; display:inline-flex; align-items:center; gap:4px; background:var(--surface); border:1px solid var(--border); padding:6px 10px; border-radius:8px; font-size:13px; color:var(--text); cursor:pointer;">
+      <input type="checkbox" class="feature-check" value="Inscribed"> Inscribed
+    </label>
+    <label style="margin:0; display:inline-flex; align-items:center; gap:4px; background:var(--surface); border:1px solid var(--border); padding:6px 10px; border-radius:8px; font-size:13px; color:var(--text); cursor:pointer;">
+      <input type="checkbox" class="feature-check" value="Rare"> Rare
+    </label>
+  </div>
+
+  <label>Notes</label>
+  <textarea id="notes" placeholder="Anything else — damage, provenance, edition info..." rows="2"></textarea>
+
+  <label>Photos</label>
+  <div class="photo-grid" id="photoGrid">
+    <button class="add-photo-btn" onclick="addPhoto()">+</button>
+  </div>
+  <input type="file" id="photoInput" accept="image/*" capture="environment" multiple style="display:none" onchange="handlePhotos(this)">
+
+  <button class="btn btn-gold" onclick="saveItem()" id="saveBtn">Save Item</button>
+  <button class="btn btn-outline" onclick="saveAndNext()">Save & Next</button>
+</div>
+
+<!-- ════════════ DASHBOARD PAGE ════════════ -->
+<div id="dashboardPage" class="page">
+  <h1>Dashboard</h1>
+  <p class="subtitle">All captured items</p>
+
+  <div class="stats-bar" id="statsBar">
+    <div class="stat"><div class="num" id="statTotal">0</div><div class="label">Captured</div></div>
+    <div class="stat"><div class="num" id="statPhotos">0</div><div class="label">Photos</div></div>
+    <div class="stat"><div class="num" id="statToday">0</div><div class="label">Today</div></div>
+  </div>
+
+  <input type="text" class="search-bar" id="searchItems" placeholder="Search items..." oninput="renderDashboard()">
+
+  <div id="itemsList"></div>
+</div>
+
+<!-- ════════════ LABELS PAGE ════════════ -->
+<div id="labelsPage" class="page">
+  <h1 class="no-print">Print QR Labels</h1>
+  <p class="subtitle no-print">Avery 5160 layout — 30 labels per sheet</p>
+
+  <div class="label-controls no-print">
+    <input type="number" id="labelStart" placeholder="Start (1)" value="1" min="1">
+    <input type="number" id="labelEnd" placeholder="End (30)" value="30" min="1">
+  </div>
+
+  <label class="no-print" style="margin-bottom:8px;">Base URL (where this file is hosted)</label>
+  <input type="text" id="labelBaseUrl" class="no-print" placeholder="https://yourdomain.com/collection-intake.html" value="">
+
+  <button class="btn btn-gold no-print" onclick="generateLabels()">Generate Labels</button>
+  <button class="btn btn-outline no-print" onclick="window.print()">Print Labels</button>
+
+  <div id="labelOutput" class="label-sheet"></div>
+</div>
+
+<!-- ════════════ EXPORT PAGE ════════════ -->
+<div id="exportPage" class="page">
+  <h1>Export Collection</h1>
+  <p class="subtitle">Download all captured data</p>
+
+  <div class="stats-bar">
+    <div class="stat"><div class="num" id="exportTotal">0</div><div class="label">Items</div></div>
+    <div class="stat"><div class="num" id="exportPhotos">0</div><div class="label">Photos</div></div>
+    <div class="stat"><div class="num" id="exportSize">0</div><div class="label">MB (est)</div></div>
+  </div>
+
+  <button class="btn btn-gold" onclick="exportZip()">Download ZIP</button>
+  <div class="progress-bar" id="exportProgress" style="display:none;">
+    <div class="progress-fill" id="exportFill"></div>
+  </div>
+  <p id="exportStatus" style="text-align:center; margin-top:8px; color:var(--text-dim); font-size:13px;"></p>
+
+  <button class="btn btn-outline" onclick="exportCSV()">Download CSV Only</button>
+
+  <button class="btn btn-danger" onclick="clearAllData()" style="margin-top:40px;">Clear All Data</button>
+  <p style="text-align:center; font-size:11px; color:var(--text-dim); margin-top:4px;">This cannot be undone</p>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DATABASE ───
+const DB_NAME = 'PremiereIntake';
+const DB_VERSION = 1;
+let db;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('items')) {
+        const store = d.createObjectStore('items', { keyPath: 'id' });
+        store.createIndex('timestamp', 'timestamp');
+      }
+    };
+    req.onsuccess = (e) => { db = e.target.result; resolve(db); };
+    req.onerror = (e) => reject(e);
+  });
+}
+
+function dbPut(item) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('items', 'readwrite');
+    tx.objectStore('items').put(item);
+    tx.oncomplete = resolve;
+    tx.onerror = reject;
+  });
+}
+
+function dbGetAll() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('items', 'readonly');
+    const req = tx.objectStore('items').getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = reject;
+  });
+}
+
+function dbGet(id) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('items', 'readonly');
+    const req = tx.objectStore('items').get(id);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = reject;
+  });
+}
+
+function dbDelete(id) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('items', 'readwrite');
+    tx.objectStore('items').delete(id);
+    tx.oncomplete = resolve;
+    tx.onerror = reject;
+  });
+}
+
+function dbClear() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('items', 'readwrite');
+    tx.objectStore('items').clear();
+    tx.oncomplete = resolve;
+    tx.onerror = reject;
+  });
+}
+
+// ─── STATE ───
+let currentPhotos = []; // array of { dataUrl, name }
+let editingId = null;
+
+// ─── NAVIGATION ───
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(page + 'Page').classList.add('active');
+  document.querySelectorAll('.nav button').forEach((b, i) => {
+    b.classList.toggle('active', b.textContent.toLowerCase() === page);
+  });
+  if (page === 'dashboard') renderDashboard();
+  if (page === 'export') updateExportStats();
+}
+
+// ─── TOAST ───
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ─── PHOTO HANDLING ───
+function addPhoto() {
+  document.getElementById('photoInput').click();
+}
+
+function handlePhotos(input) {
+  const files = Array.from(input.files);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      // Compress the image before storing
+      compressImage(e.target.result, 1200, 0.8).then(compressed => {
+        currentPhotos.push({ dataUrl: compressed, name: file.name });
+        renderPhotoGrid();
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function compressImage(dataUrl, maxDim, quality) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+        else { w = Math.round(w * maxDim / h); h = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src = dataUrl;
+  });
+}
+
+function renderPhotoGrid() {
+  const grid = document.getElementById('photoGrid');
+  grid.innerHTML = '';
+  currentPhotos.forEach((photo, i) => {
+    const div = document.createElement('div');
+    div.className = 'photo-thumb';
+    div.innerHTML = `<img src="${photo.dataUrl}"><button class="delete-photo" onclick="removePhoto(${i})">×</button>`;
+    grid.appendChild(div);
+  });
+  const addBtn = document.createElement('button');
+  addBtn.className = 'add-photo-btn';
+  addBtn.textContent = '+';
+  addBtn.onclick = addPhoto;
+  grid.appendChild(addBtn);
+}
+
+function removePhoto(i) {
+  currentPhotos.splice(i, 1);
+  renderPhotoGrid();
+}
+
+// ─── VOICE INPUT ───
+let recognition = null;
+let isRecording = false;
+
+function toggleVoice() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    toast('Voice not supported in this browser');
+    return;
+  }
+
+  const btn = document.getElementById('voiceBtn');
+
+  if (isRecording) {
+    recognition.stop();
+    isRecording = false;
+    btn.classList.remove('recording');
+    return;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  recognition.onresult = (e) => {
+    let transcript = '';
+    for (let i = 0; i < e.results.length; i++) {
+      transcript += e.results[i][0].transcript;
+    }
+    document.getElementById('description').value = transcript;
+  };
+
+  recognition.onend = () => {
+    isRecording = false;
+    btn.classList.remove('recording');
+  };
+
+  recognition.start();
+  isRecording = true;
+  btn.classList.add('recording');
+}
+
+// ─── SAVE ───
+async function saveItem() {
+  const id = document.getElementById('itemId').value.trim();
+  if (!id) { toast('Enter an item number'); return; }
+
+  const features = [];
+  document.querySelectorAll('.feature-check:checked').forEach(c => features.push(c.value));
+
+  const item = {
+    id: id,
+    category: document.getElementById('category').value,
+    condition: document.getElementById('condition').value,
+    description: document.getElementById('description').value,
+    features: features,
+    notes: document.getElementById('notes').value,
+    photos: currentPhotos,
+    timestamp: new Date().toISOString(),
+    capturedBy: navigator.userAgent.includes('iPhone') ? 'iPhone' :
+                navigator.userAgent.includes('Android') ? 'Android' : 'Desktop'
+  };
+
+  await dbPut(item);
+  toast(`Item ${id} saved (${currentPhotos.length} photos)`);
+  return id;
+}
+
+async function saveAndNext() {
+  const id = await saveItem();
+  if (!id) return;
+
+  // Auto-increment to next ID
+  const num = parseInt(id);
+  if (!isNaN(num)) {
+    document.getElementById('itemId').value = String(num + 1).padStart(id.length, '0');
+  } else {
+    document.getElementById('itemId').value = '';
+  }
+
+  // Clear form
+  document.getElementById('category').value = '';
+  document.getElementById('condition').value = '';
+  document.getElementById('description').value = '';
+  document.getElementById('notes').value = '';
+  document.querySelectorAll('.feature-check').forEach(c => c.checked = false);
+  currentPhotos = [];
+  renderPhotoGrid();
+  editingId = null;
+
+  // Scroll to top
+  window.scrollTo(0, 0);
+}
+
+// ─── DASHBOARD ───
+async function renderDashboard() {
+  const items = await dbGetAll();
+  const search = document.getElementById('searchItems').value.toLowerCase();
+
+  const filtered = items.filter(item =>
+    !search ||
+    item.id.toLowerCase().includes(search) ||
+    (item.description || '').toLowerCase().includes(search) ||
+    (item.category || '').toLowerCase().includes(search) ||
+    (item.notes || '').toLowerCase().includes(search)
+  );
+
+  // Sort by ID
+  filtered.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+
+  // Stats
+  const today = new Date().toISOString().split('T')[0];
+  const todayCount = items.filter(i => i.timestamp && i.timestamp.startsWith(today)).length;
+  const totalPhotos = items.reduce((sum, i) => sum + (i.photos ? i.photos.length : 0), 0);
+
+  document.getElementById('statTotal').textContent = items.length;
+  document.getElementById('statPhotos').textContent = totalPhotos;
+  document.getElementById('statToday').textContent = todayCount;
+
+  const list = document.getElementById('itemsList');
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty-state">
+      <div class="icon">📦</div>
+      <p>${items.length === 0 ? 'No items captured yet.<br>Scan a QR label or go to Capture to start.' : 'No items match your search.'}</p>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(item => {
+    const thumb = item.photos && item.photos.length > 0
+      ? `<img src="${item.photos[0].dataUrl}">`
+      : '';
+    const photoCount = item.photos ? item.photos.length : 0;
+    return `<div class="item-card" onclick="editItem('${item.id}')">
+      <div class="thumb">${thumb}</div>
+      <div class="info">
+        <div class="item-id">#${item.id}</div>
+        <div class="item-desc">${item.description || 'No description'}</div>
+        <div class="item-cat">${item.category || 'Uncategorized'}${item.features && item.features.length ? ' · ' + item.features.join(', ') : ''}</div>
+      </div>
+      <div class="photos-count">${photoCount} 📷</div>
+    </div>`;
+  }).join('');
+}
+
+async function editItem(id) {
+  const item = await dbGet(id);
+  if (!item) return;
+
+  editingId = id;
+  document.getElementById('itemId').value = item.id;
+  document.getElementById('category').value = item.category || '';
+  document.getElementById('condition').value = item.condition || '';
+  document.getElementById('description').value = item.description || '';
+  document.getElementById('notes').value = item.notes || '';
+
+  document.querySelectorAll('.feature-check').forEach(c => {
+    c.checked = item.features && item.features.includes(c.value);
+  });
+
+  currentPhotos = item.photos || [];
+  renderPhotoGrid();
+
+  showPage('capture');
+  window.scrollTo(0, 0);
+}
+
+// ─── LABELS ───
+async function generateLabels() {
+  const start = parseInt(document.getElementById('labelStart').value) || 1;
+  const end = parseInt(document.getElementById('labelEnd').value) || 30;
+  let baseUrl = document.getElementById('labelBaseUrl').value.trim();
+
+  if (!baseUrl) {
+    // Default to current page URL
+    baseUrl = window.location.href.split('?')[0];
+  }
+
+  const output = document.getElementById('labelOutput');
+  output.innerHTML = '';
+
+  const total = end - start + 1;
+  let currentRow;
+
+  for (let i = start; i <= end; i++) {
+    const idx = i - start;
+    if (idx % 3 === 0) {
+      currentRow = document.createElement('div');
+      currentRow.className = 'label-row';
+      output.appendChild(currentRow);
+    }
+
+    const id = String(i).padStart(4, '0');
+    const url = `${baseUrl}?id=${id}`;
+
+    const cell = document.createElement('div');
+    cell.className = 'label-cell';
+
+    const canvas = document.createElement('canvas');
+    cell.appendChild(canvas);
+
+    const textDiv = document.createElement('div');
+    textDiv.innerHTML = `<div class="label-text">${id}</div><div class="label-url">${url}</div>`;
+    cell.appendChild(textDiv);
+
+    currentRow.appendChild(cell);
+
+    // Generate QR
+    QRCode.toCanvas(canvas, url, {
+      width: 80,
+      margin: 1,
+      color: { dark: '#000000', light: '#ffffff' }
+    });
+  }
+
+  toast(`Generated ${total} labels`);
+}
+
+// ─── EXPORT ───
+async function updateExportStats() {
+  const items = await dbGetAll();
+  const totalPhotos = items.reduce((sum, i) => sum + (i.photos ? i.photos.length : 0), 0);
+  // Rough estimate: each compressed photo ~150KB
+  const sizeMB = Math.round(totalPhotos * 0.15);
+
+  document.getElementById('exportTotal').textContent = items.length;
+  document.getElementById('exportPhotos').textContent = totalPhotos;
+  document.getElementById('exportSize').textContent = sizeMB;
+}
+
+async function exportCSV() {
+  const items = await dbGetAll();
+  if (items.length === 0) { toast('No items to export'); return; }
+
+  items.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+
+  const headers = ['Item ID', 'Category', 'Condition', 'Description', 'Features', 'Notes', 'Photos Count', 'Captured At', 'Device'];
+  const rows = items.map(item => [
+    item.id,
+    item.category || '',
+    item.condition || '',
+    `"${(item.description || '').replace(/"/g, '""')}"`,
+    (item.features || []).join('; '),
+    `"${(item.notes || '').replace(/"/g, '""')}"`,
+    item.photos ? item.photos.length : 0,
+    item.timestamp || '',
+    item.capturedBy || ''
+  ]);
+
+  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  saveAs(blob, `rods-collection-${new Date().toISOString().split('T')[0]}.csv`);
+  toast('CSV downloaded');
+}
+
+async function exportZip() {
+  const items = await dbGetAll();
+  if (items.length === 0) { toast('No items to export'); return; }
+
+  items.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+
+  const progressBar = document.getElementById('exportProgress');
+  const progressFill = document.getElementById('exportFill');
+  const status = document.getElementById('exportStatus');
+  progressBar.style.display = 'block';
+
+  const zip = new JSZip();
+
+  // CSV
+  const headers = ['Item ID', 'Category', 'Condition', 'Description', 'Features', 'Notes', 'Photos Count', 'Captured At'];
+  const rows = items.map(item => [
+    item.id,
+    item.category || '',
+    item.condition || '',
+    `"${(item.description || '').replace(/"/g, '""')}"`,
+    (item.features || []).join('; '),
+    `"${(item.notes || '').replace(/"/g, '""')}"`,
+    item.photos ? item.photos.length : 0,
+    item.timestamp || ''
+  ]);
+  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  zip.file('collection-manifest.csv', csv);
+
+  // Photos in folders
+  let processed = 0;
+  const total = items.length;
+
+  for (const item of items) {
+    if (item.photos && item.photos.length > 0) {
+      const folder = zip.folder(`item-${item.id}`);
+
+      // Save metadata JSON
+      folder.file('metadata.json', JSON.stringify({
+        id: item.id,
+        category: item.category,
+        condition: item.condition,
+        description: item.description,
+        features: item.features,
+        notes: item.notes,
+        timestamp: item.timestamp
+      }, null, 2));
+
+      // Save photos
+      item.photos.forEach((photo, i) => {
+        const base64 = photo.dataUrl.split(',')[1];
+        folder.file(`photo-${i + 1}.jpg`, base64, { base64: true });
+      });
+    }
+
+    processed++;
+    const pct = Math.round((processed / total) * 100);
+    progressFill.style.width = pct + '%';
+    status.textContent = `Processing ${processed} of ${total} items...`;
+
+    // Yield to UI
+    if (processed % 10 === 0) {
+      await new Promise(r => setTimeout(r, 0));
+    }
+  }
+
+  status.textContent = 'Generating ZIP file...';
+  const blob = await zip.generateAsync({
+    type: 'blob',
+    compression: 'DEFLATE',
+    compressionOptions: { level: 6 }
+  }, (meta) => {
+    progressFill.style.width = meta.percent.toFixed(0) + '%';
+  });
+
+  saveAs(blob, `rods-collection-${new Date().toISOString().split('T')[0]}.zip`);
+  status.textContent = 'Download complete!';
+  toast('ZIP downloaded');
+}
+
+async function clearAllData() {
+  if (!confirm('Delete ALL captured items and photos? This cannot be undone.')) return;
+  if (!confirm('Are you absolutely sure? This deletes everything.')) return;
+  await dbClear();
+  toast('All data cleared');
+  renderDashboard();
+  updateExportStats();
+}
+
+// ─── INIT ───
+async function init() {
+  await openDB();
+
+  // Check for ?id= param from QR code
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  if (id) {
+    document.getElementById('itemId').value = id;
+    // Check if this item already exists
+    const existing = await dbGet(id);
+    if (existing) {
+      editItem(id);
+      toast(`Editing existing item #${id}`);
+    } else {
+      showPage('capture');
+      toast(`Ready to capture item #${id}`);
+    }
+    // Clean URL
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  // Set default base URL for labels
+  document.getElementById('labelBaseUrl').value = window.location.href.split('?')[0];
+}
+
+init();
+</script>
+</body>
+</html>
