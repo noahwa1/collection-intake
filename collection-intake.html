@@ -374,8 +374,14 @@ select { cursor: pointer; }
   <h1>Capture Item</h1>
   <p class="subtitle">Scan a QR label or enter an item number</p>
 
-  <label for="itemId">Item Number</label>
-  <input type="text" id="itemId" placeholder="0001" inputmode="numeric" maxlength="6">
+  <label for="itemId">SKU</label>
+  <div style="display:flex; align-items:center; gap:0;">
+    <span style="background:var(--surface); border:1px solid var(--border); border-right:none; padding:12px 10px; border-radius:var(--radius) 0 0 var(--radius); font-size:16px; color:var(--gold); font-weight:700;">RG-</span>
+    <input type="text" id="itemId" placeholder="0001" inputmode="numeric" maxlength="6" style="border-radius:0 var(--radius) var(--radius) 0;">
+  </div>
+
+  <label for="binNumber">Bin #</label>
+  <input type="text" id="binNumber" placeholder="e.g. BIN-01" maxlength="20">
 
   <label for="category">Category</label>
   <select id="category">
@@ -404,6 +410,12 @@ select { cursor: pointer; }
     <option value="Fair">Fair</option>
     <option value="Poor">Poor</option>
   </select>
+
+  <label for="cost">Cost</label>
+  <div style="display:flex; align-items:center; gap:0;">
+    <span style="background:var(--surface); border:1px solid var(--border); border-right:none; padding:12px 10px; border-radius:var(--radius) 0 0 var(--radius); font-size:16px; color:var(--gold); font-weight:700;">$</span>
+    <input type="number" id="cost" placeholder="0.00" step="0.01" min="0" style="border-radius:0 var(--radius) var(--radius) 0;" inputmode="decimal">
+  </div>
 
   <label>Description</label>
   <div class="voice-row">
@@ -702,16 +714,19 @@ function toggleVoice() {
 
 // ─── SAVE ───
 async function saveItem() {
-  const id = document.getElementById('itemId').value.trim();
-  if (!id) { toast('Enter an item number'); return; }
+  const num = document.getElementById('itemId').value.trim();
+  if (!num) { toast('Enter an item number'); return; }
+  const id = 'RG-' + num;
 
   const features = [];
   document.querySelectorAll('.feature-check:checked').forEach(c => features.push(c.value));
 
   const item = {
     id: id,
+    bin: document.getElementById('binNumber').value.trim(),
     category: document.getElementById('category').value,
     condition: document.getElementById('condition').value,
+    cost: document.getElementById('cost').value ? parseFloat(document.getElementById('cost').value) : null,
     description: document.getElementById('description').value,
     features: features,
     notes: document.getElementById('notes').value,
@@ -722,25 +737,33 @@ async function saveItem() {
   };
 
   await dbPut(item);
-  toast(`Item ${id} saved (${currentPhotos.length} photos)`);
+  toast(`${id} saved (${currentPhotos.length} photos)`);
   return id;
+}
+
+async function getNextAvailableNumber() {
+  const items = await dbGetAll();
+  const nums = items
+    .map(i => i.id.startsWith('RG-') ? parseInt(i.id.slice(3)) : NaN)
+    .filter(n => !isNaN(n));
+  if (nums.length === 0) return '0001';
+  const max = Math.max(...nums);
+  return String(max + 1).padStart(4, '0');
 }
 
 async function saveAndNext() {
   const id = await saveItem();
   if (!id) return;
 
-  // Auto-increment to next ID
-  const num = parseInt(id);
-  if (!isNaN(num)) {
-    document.getElementById('itemId').value = String(num + 1).padStart(id.length, '0');
-  } else {
-    document.getElementById('itemId').value = '';
-  }
+  // Find next available SKU number
+  const nextNum = await getNextAvailableNumber();
+  document.getElementById('itemId').value = nextNum;
 
-  // Clear form
+  // Keep bin number (likely still filling same bin)
+  // Clear everything else
   document.getElementById('category').value = '';
   document.getElementById('condition').value = '';
+  document.getElementById('cost').value = '';
   document.getElementById('description').value = '';
   document.getElementById('notes').value = '';
   document.querySelectorAll('.feature-check').forEach(c => c.checked = false);
@@ -762,7 +785,8 @@ async function renderDashboard() {
     item.id.toLowerCase().includes(search) ||
     (item.description || '').toLowerCase().includes(search) ||
     (item.category || '').toLowerCase().includes(search) ||
-    (item.notes || '').toLowerCase().includes(search)
+    (item.notes || '').toLowerCase().includes(search) ||
+    (item.bin || '').toLowerCase().includes(search)
   );
 
   // Sort by ID
@@ -797,7 +821,7 @@ async function renderDashboard() {
       <div class="info">
         <div class="item-id">#${item.id}</div>
         <div class="item-desc">${item.description || 'No description'}</div>
-        <div class="item-cat">${item.category || 'Uncategorized'}${item.features && item.features.length ? ' · ' + item.features.join(', ') : ''}</div>
+        <div class="item-cat">${item.category || 'Uncategorized'}${item.bin ? ' · Bin ' + item.bin : ''}${item.features && item.features.length ? ' · ' + item.features.join(', ') : ''}</div>
       </div>
       <div class="photos-count">${photoCount} 📷</div>
     </div>`;
@@ -809,9 +833,11 @@ async function editItem(id) {
   if (!item) return;
 
   editingId = id;
-  document.getElementById('itemId').value = item.id;
+  document.getElementById('itemId').value = item.id.startsWith('RG-') ? item.id.slice(3) : item.id;
+  document.getElementById('binNumber').value = item.bin || '';
   document.getElementById('category').value = item.category || '';
   document.getElementById('condition').value = item.condition || '';
+  document.getElementById('cost').value = item.cost != null ? item.cost : '';
   document.getElementById('description').value = item.description || '';
   document.getElementById('notes').value = item.notes || '';
 
@@ -851,7 +877,8 @@ async function generateLabels() {
       output.appendChild(currentRow);
     }
 
-    const id = String(i).padStart(4, '0');
+    const num = String(i).padStart(4, '0');
+    const id = 'RG-' + num;
     const url = `${baseUrl}?id=${id}`;
 
     const cell = document.createElement('div');
@@ -861,7 +888,7 @@ async function generateLabels() {
     cell.appendChild(canvas);
 
     const textDiv = document.createElement('div');
-    textDiv.innerHTML = `<div class="label-text">${id}</div><div class="label-url">${url}</div>`;
+    textDiv.innerHTML = `<div class="label-text">${id}</div><div class="label-url" style="max-width:120px;">${url}</div>`;
     cell.appendChild(textDiv);
 
     currentRow.appendChild(cell);
@@ -895,11 +922,13 @@ async function exportCSV() {
 
   items.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
 
-  const headers = ['Item ID', 'Category', 'Condition', 'Description', 'Features', 'Notes', 'Photos Count', 'Captured At', 'Device'];
+  const headers = ['SKU', 'Bin', 'Category', 'Condition', 'Cost', 'Description', 'Features', 'Notes', 'Photos Count', 'Captured At', 'Device'];
   const rows = items.map(item => [
     item.id,
+    item.bin || '',
     item.category || '',
     item.condition || '',
+    item.cost != null ? item.cost : '',
     `"${(item.description || '').replace(/"/g, '""')}"`,
     (item.features || []).join('; '),
     `"${(item.notes || '').replace(/"/g, '""')}"`,
@@ -928,11 +957,13 @@ async function exportZip() {
   const zip = new JSZip();
 
   // CSV
-  const headers = ['Item ID', 'Category', 'Condition', 'Description', 'Features', 'Notes', 'Photos Count', 'Captured At'];
+  const headers = ['SKU', 'Bin', 'Category', 'Condition', 'Cost', 'Description', 'Features', 'Notes', 'Photos Count', 'Captured At'];
   const rows = items.map(item => [
     item.id,
+    item.bin || '',
     item.category || '',
     item.condition || '',
+    item.cost != null ? item.cost : '',
     `"${(item.description || '').replace(/"/g, '""')}"`,
     (item.features || []).join('; '),
     `"${(item.notes || '').replace(/"/g, '""')}"`,
@@ -953,8 +984,10 @@ async function exportZip() {
       // Save metadata JSON
       folder.file('metadata.json', JSON.stringify({
         id: item.id,
+        bin: item.bin,
         category: item.category,
         condition: item.condition,
+        cost: item.cost,
         description: item.description,
         features: item.features,
         notes: item.notes,
@@ -1010,15 +1043,18 @@ async function init() {
   const params = new URLSearchParams(window.location.search);
   const id = params.get('id');
   if (id) {
-    document.getElementById('itemId').value = id;
+    // Strip RG- prefix for the input field, keep full ID for DB lookup
+    const num = id.startsWith('RG-') ? id.slice(3) : id;
+    const fullId = id.startsWith('RG-') ? id : 'RG-' + id;
+    document.getElementById('itemId').value = num;
     // Check if this item already exists
-    const existing = await dbGet(id);
+    const existing = await dbGet(fullId);
     if (existing) {
-      editItem(id);
-      toast(`Editing existing item #${id}`);
+      editItem(fullId);
+      toast(`Editing existing item ${fullId}`);
     } else {
       showPage('capture');
-      toast(`Ready to capture item #${id}`);
+      toast(`Ready to capture ${fullId}`);
     }
     // Clean URL
     window.history.replaceState({}, '', window.location.pathname);
