@@ -423,6 +423,28 @@ select { cursor: pointer; }
     <button class="voice-btn" onclick="toggleVoice()" id="voiceBtn" title="Voice input">🎤</button>
   </div>
 
+  <label>Authentication</label>
+  <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+    <label style="margin:0; display:inline-flex; align-items:center; gap:4px; background:var(--surface); border:1px solid var(--border); padding:6px 10px; border-radius:8px; font-size:13px; color:var(--text); cursor:pointer;">
+      <input type="checkbox" class="auth-check" value="JSA"> JSA
+    </label>
+    <label style="margin:0; display:inline-flex; align-items:center; gap:4px; background:var(--surface); border:1px solid var(--border); padding:6px 10px; border-radius:8px; font-size:13px; color:var(--text); cursor:pointer;">
+      <input type="checkbox" class="auth-check" value="PSA"> PSA
+    </label>
+    <label style="margin:0; display:inline-flex; align-items:center; gap:4px; background:var(--surface); border:1px solid var(--border); padding:6px 10px; border-radius:8px; font-size:13px; color:var(--text); cursor:pointer;">
+      <input type="checkbox" class="auth-check" value="Beckett"> Beckett
+    </label>
+    <label style="margin:0; display:inline-flex; align-items:center; gap:4px; background:var(--surface); border:1px solid var(--border); padding:6px 10px; border-radius:8px; font-size:13px; color:var(--text); cursor:pointer;">
+      <input type="checkbox" class="auth-check" value="CGC"> CGC
+    </label>
+    <label style="margin:0; display:inline-flex; align-items:center; gap:4px; background:var(--surface); border:1px solid var(--border); padding:6px 10px; border-radius:8px; font-size:13px; color:var(--text); cursor:pointer;">
+      <input type="checkbox" class="auth-check" value="SGC"> SGC
+    </label>
+    <label style="margin:0; display:inline-flex; align-items:center; gap:4px; background:var(--surface); border:1px solid var(--border); padding:6px 10px; border-radius:8px; font-size:13px; color:var(--text); cursor:pointer;">
+      <input type="checkbox" class="auth-check" value="None"> None
+    </label>
+  </div>
+
   <label>Notable Features</label>
   <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
     <label style="margin:0; display:inline-flex; align-items:center; gap:4px; background:var(--surface); border:1px solid var(--border); padding:6px 10px; border-radius:8px; font-size:13px; color:var(--text); cursor:pointer;">
@@ -718,6 +740,8 @@ async function saveItem() {
   if (!num) { toast('Enter an item number'); return; }
   const id = 'RG-' + num;
 
+  const auth = [];
+  document.querySelectorAll('.auth-check:checked').forEach(c => auth.push(c.value));
   const features = [];
   document.querySelectorAll('.feature-check:checked').forEach(c => features.push(c.value));
 
@@ -727,6 +751,7 @@ async function saveItem() {
     category: document.getElementById('category').value,
     condition: document.getElementById('condition').value,
     cost: document.getElementById('cost').value ? parseFloat(document.getElementById('cost').value) : null,
+    authentication: auth,
     description: document.getElementById('description').value,
     features: features,
     notes: document.getElementById('notes').value,
@@ -766,6 +791,7 @@ async function saveAndNext() {
   document.getElementById('cost').value = '';
   document.getElementById('description').value = '';
   document.getElementById('notes').value = '';
+  document.querySelectorAll('.auth-check').forEach(c => c.checked = false);
   document.querySelectorAll('.feature-check').forEach(c => c.checked = false);
   currentPhotos = [];
   renderPhotoGrid();
@@ -841,6 +867,9 @@ async function editItem(id) {
   document.getElementById('description').value = item.description || '';
   document.getElementById('notes').value = item.notes || '';
 
+  document.querySelectorAll('.auth-check').forEach(c => {
+    c.checked = item.authentication && item.authentication.includes(c.value);
+  });
   document.querySelectorAll('.feature-check').forEach(c => {
     c.checked = item.features && item.features.includes(c.value);
   });
@@ -922,13 +951,14 @@ async function exportCSV() {
 
   items.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
 
-  const headers = ['SKU', 'Bin', 'Category', 'Condition', 'Cost', 'Description', 'Features', 'Notes', 'Photos Count', 'Captured At', 'Device'];
+  const headers = ['SKU', 'Bin', 'Category', 'Condition', 'Cost', 'Authentication', 'Description', 'Features', 'Notes', 'Photos Count', 'Captured At', 'Device'];
   const rows = items.map(item => [
     item.id,
     item.bin || '',
     item.category || '',
     item.condition || '',
     item.cost != null ? item.cost : '',
+    (item.authentication || []).join('; '),
     `"${(item.description || '').replace(/"/g, '""')}"`,
     (item.features || []).join('; '),
     `"${(item.notes || '').replace(/"/g, '""')}"`,
@@ -957,13 +987,14 @@ async function exportZip() {
   const zip = new JSZip();
 
   // CSV
-  const headers = ['SKU', 'Bin', 'Category', 'Condition', 'Cost', 'Description', 'Features', 'Notes', 'Photos Count', 'Captured At'];
+  const headers = ['SKU', 'Bin', 'Category', 'Condition', 'Cost', 'Authentication', 'Description', 'Features', 'Notes', 'Photos Count', 'Captured At'];
   const rows = items.map(item => [
     item.id,
     item.bin || '',
     item.category || '',
     item.condition || '',
     item.cost != null ? item.cost : '',
+    (item.authentication || []).join('; '),
     `"${(item.description || '').replace(/"/g, '""')}"`,
     (item.features || []).join('; '),
     `"${(item.notes || '').replace(/"/g, '""')}"`,
@@ -988,6 +1019,7 @@ async function exportZip() {
         category: item.category,
         condition: item.condition,
         cost: item.cost,
+        authentication: item.authentication,
         description: item.description,
         features: item.features,
         notes: item.notes,
