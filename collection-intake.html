@@ -473,7 +473,7 @@ select { cursor: pointer; }
   </div>
 
   <label class="no-print" style="margin-bottom:8px;">Base URL (where this file is hosted)</label>
-  <input type="text" id="labelBaseUrl" class="no-print" placeholder="https://yourdomain.com/collection-intake.html" value="">
+  <input type="text" id="labelBaseUrl" class="no-print" placeholder="https://yourdomain.com/collection-intake.html" value="https://noahwa1.github.io/collection-intake/collection-intake.html">
 
   <button class="btn btn-gold no-print" onclick="generateLabels()">Generate Labels</button>
   <button class="btn btn-outline no-print" onclick="window.print()">Print Labels</button>
@@ -1025,7 +1025,7 @@ async function init() {
   }
 
   // Set default base URL for labels
-  document.getElementById('labelBaseUrl').value = window.location.href.split('?')[0];
+  document.getElementById('labelBaseUrl').value = 'https://noahwa1.github.io/collection-intake/collection-intake.html';
 }
 
 init();
